@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription Plans</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: black; color: white; font-family: Arial, sans-serif; text-align: center; }
+        .nav { 
+            display: flex; justify-content: center; gap: 40px; padding: 15px;
+            position: relative; backdrop-filter: blur(8px);
+        }
+        .nav a { color: white; text-decoration: none; font-size: 18px; }
+        .container { 
+            display: flex; justify-content: center; margin-top: 50px; position: relative;
+        }
+        .smoke { 
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 500px; height: 200px; background: white; filter: blur(20px);
+            opacity: 0.05;
+        }
+        .table {
+            background: white; color: black; padding: 30px; border-radius: 15px;
+            display: flex; gap: 20px; box-shadow: 0px 4px 10px rgba(255, 255, 255, 0.2);
+        }
+        .column {
+            padding: 20px; flex: 1; border-radius: 10px;
+            display: flex; flex-direction: column; gap: 10px; align-items: center;
+        }
+        .btn {
+            margin-top: 10px; padding: 10px 20px; border-radius: 30px;
+            background: black; color: white; border: none; cursor: pointer;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="#">Support</a>
+        <a href="#">Bot</a>
+    </div>
+    <div class="container">
+        <div class="smoke"></div>
+        <div class="table">
+            <div class="column">
+                <h3>Basic</h3>
+                <p>Profit Boost: 10%</p>
+                <p>Take Profit Time: 50m</p>
+                <p>Beta-test: No</p>
+                <p>Price: 25₴</p>
+                <button class="btn">BUY</button>
+            </div>
+            <div class="column">
+                <h3>Support</h3>
+                <p>Profit Boost: 20%</p>
+                <p>Take Profit Time: 40m</p>
+                <p>Beta-test: Yes</p>
+                <p>Price: 50₴</p>
+                <button class="btn">BUY</button>
+            </div>
+            <div class="column">
+                <h3>Advanced</h3>
+                <p>Profit Boost: 40%</p>
+                <p>Take Profit Time: 30m</p>
+                <p>Beta-test: Yes</p>
+                <p>Price: 100₴</p>
+                <button class="btn">BUY</button>
+            </div>
+            <div class="column">
+                <h3>Premium</h3>
+                <p>Profit Boost: 60%</p>
+                <p>Take Profit Time: 20m</p>
+                <p>Beta-test: Yes</p>
+                <p>Price: 200₴</p>
+                <button class="btn">BUY</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        gsap.to(".smoke", { opacity: 0.1, duration: 3, yoyo: true, repeat: -1, scale: 1.2 });
+    </script>
+</body>
+</html>
