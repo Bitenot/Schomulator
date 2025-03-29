@@ -12,7 +12,7 @@ bot = telebot.TeleBot(TOKEN)
 
 DB_PATH = r"C:\Users\shado\OneDrive\Documents\Telebot\database.db"
 
-# Функция для создания таблицы при необходимости
+# Function to create a table if necessary
 def create_table(group_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -30,12 +30,12 @@ def create_table(group_id):
 def check_achievement(points):
     return "\n\n🔞Достижения: Настя на ферме🔞" if points > 500 else ""
 
-# Функция обновления места в локальном и глобальном топе
+# Function to update local and global rankings
 def get_rankings():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    # Глобальный рейтинг
+    # Global ranking
     cursor.execute("SELECT user_id, SUM(points) FROM (" +
                " UNION ALL ".join(
                    [f"SELECT user_id, points FROM '{table[0]}'"
@@ -48,7 +48,7 @@ def get_rankings():
     conn.close()
     return global_ranks
 
-# Команда /play
+# Command /play
 @bot.message_handler(commands=['play'])
 def play_game(message):
     user_id = message.from_user.id
@@ -59,35 +59,35 @@ def play_game(message):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    # Получаем текущего пользователя
+    # Get the current user
     cursor.execute(f"SELECT points, last_play FROM '{group_id}' WHERE user_id = ?", (user_id, ))
     row = cursor.fetchone()
     
     now = int(time.time())
     if row:
         points, last_play = row
-        if now - last_play < 43200:  # 12 часов = 43200 секунд
+        if now - last_play < 43200:  # 12 hours = 43200 seconds
             bot.reply_to(message, "Не запрягайте своих рабов, подождите 12 часов. У нас 21 век!")
             return
     else:
         points, last_play = 0, 0
         cursor.execute(f"INSERT INTO '{group_id}' (user_id, username, points, last_play) VALUES (?, ?, 0, 0)", (user_id, username))
     
-    # Вычисляем изменение очков
+    # Calculate points change
     if random.random() < 0.3:
         delta = -random.randint(1, 5)
     else:
         delta = random.randint(1, 10)
     points += delta
     
-    # Обновляем данные пользователя
+    # Update user data
     cursor.execute(f"UPDATE '{group_id}' SET points = ?, last_play = ? WHERE user_id = ?", (points, now, user_id))
     conn.commit()
     
     achievement = check_achievement(points)
     achievement_text = f"\n{achievement}" if achievement else ""
     
-    # Получаем рейтинги
+    # Get rankings
     cursor.execute(f"SELECT user_id, points FROM '{group_id}' ORDER BY points DESC")
     local_ranks = {row[0]: idx + 1 for idx, row in enumerate(cursor.fetchall())}
     global_ranks = get_rankings()
@@ -102,7 +102,7 @@ def play_game(message):
     
     conn.close()
 
-# Команда /statistic
+# Command /statistic
 @bot.message_handler(commands=['statistic'])
 def show_stats(message):
     group_id = message.chat.id
@@ -141,7 +141,7 @@ def show_stats(message):
     response = "🏆 Локальный рейтинг: \n" + "\n".join([f"{idx+1}. @{row[0]} - {row[1]} Школьных" for idx, row in enumerate(stats)])
     bot.reply_to(message, response)
     
-# Команда /top
+# Command /top
 @bot.message_handler(commands=['top'])
 def global_top(message):
     conn = sqlite3.connect(DB_PATH)
@@ -163,12 +163,15 @@ def global_top(message):
     
     bot.reply_to(message, "🏆Глобальный рейтинг:\n" + (top_list if top_list else "Пока никто не играет."))
 
-# Команда /help
+# Command /help
+# Command /help
 @bot.message_handler(commands=['help'])
 def help_command(message):
-    bot.reply_to(message, "Прокачать ферму Школьных - /play.\nПросмотреть статистику - /statistic.\nГлобальный топ фермеров - /top.\nСразиться с другим игроком - /battlez @username.")
+    bot.reply_to(message, "Прокачать ферму Школьных - /play.\nПросмотреть статистику - /statistic.\nГлобальный топ фермеров - /top.\n"
+                           "Список команд: /commands.\n"
+                           "Бросить вызов другому игроку - /battlez @username.")
 
-# Команда /battlez
+# Command /battlez
 @bot.message_handler(commands=['battlez'])
 def battlez_command(message):
     try:
