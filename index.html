@@ -3,88 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subscription Plans</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <title>Bot Documentation</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: black; color: white; font-family: Arial, sans-serif; text-align: center; }
-        .nav { 
-            display: flex; justify-content: center; gap: 40px; padding: 15px;
-            position: relative; backdrop-filter: blur(8px);
+        body {
+            background-color: #0F0F0F;
+            color: #FFFFFF;
+            font-family: Arial, sans-serif;
+            text-align: center;
         }
-        .nav a { color: white; text-decoration: none; font-size: 18px; }
-        .container { 
-            display: flex; justify-content: center; margin-top: 50px; position: relative;
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
         }
-        .smoke {
-            position: absolute; top: -50px; left: 50%; transform: translateX(-50%);
-            width: 600px; height: 400px; background: white; filter: blur(40px);
-            opacity: 0.05; z-index: -1;
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 20px auto;
         }
-        .table {
-            background: white; color: black; padding: 30px; border-radius: 15px;
-            display: flex; gap: 20px; box-shadow: 0px 4px 10px rgba(255, 255, 255, 0.2); position: relative;
+        .box {
+            border: 2px solid #000000;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: left;
         }
-        .column {
-            padding: 20px; flex: 1; border-radius: 10px;
-            display: flex; flex-direction: column; gap: 10px; align-items: center;
+        .box h2 {
+            font-size: 32px;
+            margin-bottom: 10px;
         }
-        .btn {
-            margin-top: 10px; padding: 10px 20px; border-radius: 30px;
-            background: black; color: white; border: none; cursor: pointer;
-            font-size: 16px;
+        .box p {
+            font-size: 32px;
         }
     </style>
 </head>
 <body>
-    <div class="nav">
-        <a href="#">Support</a>
-        <a href="#">Bot</a>
-    </div>
+    <h1>Bot Documentation</h1>
     <div class="container">
-        <div class="smoke smoke-1"></div>
-        <div class="smoke smoke-2"></div>
-        <div class="smoke smoke-3"></div>
-        <div class="table">
-            <div class="column">
-                <h3>Basic</h3>
-                <p>Profit Boost: 10%</p>
-                <p>Take Profit Time: 50m</p>
-                <p>Beta-test: No</p>
-                <p>Price: 25₴</p>
-                <button class="btn">BUY</button>
-            </div>
-            <div class="column">
-                <h3>Support</h3>
-                <p>Profit Boost: 20%</p>
-                <p>Take Profit Time: 40m</p>
-                <p>Beta-test: Yes</p>
-                <p>Price: 50₴</p>
-                <button class="btn">BUY</button>
-            </div>
-            <div class="column">
-                <h3>Advanced</h3>
-                <p>Profit Boost: 40%</p>
-                <p>Take Profit Time: 30m</p>
-                <p>Beta-test: Yes</p>
-                <p>Price: 100₴</p>
-                <button class="btn">BUY</button>
-            </div>
-            <div class="column">
-                <h3>Premium</h3>
-                <p>Profit Boost: 60%</p>
-                <p>Take Profit Time: 20m</p>
-                <p>Beta-test: Yes</p>
-                <p>Price: 200₴</p>
-                <button class="btn">BUY</button>
-            </div>
+        <div class="box">
+            <h2>Use of bot</h2>
+            <p>/play - изменяет текущий баланс игрока.</p><p>/help - список команд.</p><p>/statistic - статистика игрока.</p><p>upgrade - прокачка игрока.</p>
+            <p>/upgradeinfo - информация о каждом аспекте прокачки.</p><p>/events - текущие события.</p><p>/top - глобальный топ</p><p>/localtop - локальный топ.</p>
+            <p>/batlez - сражение с другими игроками</p>
+        </div>
+        <div class="box">
+            <h2>Command algorithms</h2>
+            <p></p>
         </div>
     </div>
-    <script>
-        gsap.to(".smoke", { opacity: 0.1, duration: 3, yoyo: true, repeat: -1, scale: 1.2 });
-        gsap.fromTo(".smoke-1", { x: -100, y: -50 }, { x: 100, y: 50, duration: 5, yoyo: true, repeat: -1 });
-        gsap.fromTo(".smoke-2", { x: 100, y: 50 }, { x: -100, y: -50, duration: 6, yoyo: true, repeat: -1 });
-        gsap.fromTo(".smoke-3", { x: 0, y: -100 }, { x: 0, y: 100, duration: 4, yoyo: true, repeat: -1 });
-    </script>
 </body>
 </html>
