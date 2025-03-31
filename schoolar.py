@@ -12,7 +12,6 @@ bot = telebot.TeleBot(TOKEN)
 
 DB_PATH = r"C:\Users\shado\OneDrive\Documents\Telebot\database.db"
 
-
 def create_table(group_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -29,9 +28,9 @@ def create_table(group_id):
         "character_level": "INTEGER DEFAULT 1",
         "farm_level": "INTEGER DEFAULT 1",
         "vampirism": "BOOLEAN DEFAULT 0",
-        "clprice": "INTEGER DEFAULT 60",
-        "farmprice": "INTEGER DEFAULT 85",
-        "vamprice": "INTEGER DEFAULT 70",
+        "clprice": "INTEGER DEFAULT 70",
+        "farmprice": "INTEGER DEFAULT 120",
+        "vamprice": "INTEGER DEFAULT 100"
     }
     for column, column_type in columns.items():
         cursor.execute(f"PRAGMA table_info('{group_id}')")
@@ -86,7 +85,7 @@ def play_game(message):
         points, last_play, character_level, farm_level, vampirism = 0, 0, 1, 1, 0
         cursor.execute(f"INSERT INTO '{group_id}' (user_id, username, points, last_play, character_level, farm_level, vampirism) VALUES (?, ?, 0, 0, 1, 1, 0)", (user_id, username))
     
-    if random.random() < 0.05:  
+    if random.random() < 0.05:  # 5% chance for jackpot
         delta = 150
         bot.reply_to(message, f"🎉 Джекпот! Вы выиграли 150 очков! 🎉")
     elif random.random() < 0.3:
@@ -94,10 +93,10 @@ def play_game(message):
     else:
         delta = random.randint(1, 10 + (farm_level - 1) * 5)
     
-    if character_level > 1 and random.random() < 0.1 + 0.40 * (character_level - 1):
-        delta += random.randint(1, 5)
+    if character_level > 1 and random.random() < 0.1 + 0.1 * (character_level - 1):
+        delta += random.randint(1, 5 + (farm_level - 1) * 2)
 
-    if vampirism and random.random() < 0.20:
+    if vampirism and random.random() < 0.40:
         cursor.execute(f"SELECT user_id FROM '{group_id}' WHERE user_id != ?", (user_id,))
         other_users = cursor.fetchall()
         if other_users:
@@ -145,7 +144,7 @@ def show_stats(message):
     
     username, points, character_level, farm_level, vampirism = stats
     response = f"@{username}, у вас {points} Школьных.\n"\
-               f"Уровень рабовладельца: {character_level}\n"\
+               f"Уровень персонажа: {character_level}\n"\
                f"Уровень фермы: {farm_level}\n"\
                f"Вампиризм: {'Да' if vampirism else 'Нет'}"
     bot.reply_to(message, response)
@@ -187,25 +186,20 @@ def global_top(message):
     top_list = "\n" + "\n".join([f"{i+1}. @{user[0]} - {user[1]} рабов" for i, user in enumerate(sorted_users[:10])])
     conn.close()
     
-    bot.reply_to(message, "🏆Глобальный рейтинг:\n" + (top_list if top_list else "Пока никто не играет."))
+    bot.reply_to(message, "🏆Глобальный рейтинг:\н" + (top_list if top_list else "Пока никто не играет."))
 
 @bot.message_handler(commands=['help'])
 def help_command(message):
-    bot.reply_to(message, "Купить рабов Школьных - /play.\nПросмотреть статистику - /statistic.\nГлобальный топ фермеров - /top.\n"
+    bot.reply_to(message, "Прокачать ферму Школьных - /play.\nПросмотреть статистику - /statistic.\nГлобальный топ фермеров - /top.\n"
                            "Список команд: /commands.\n"
-                           "Бросить вызов другому игроку - /battlez @username.\n"
-                           "Прокачать ферму - /upgrade")
+                           "Бросить вызов другому игроку - /battlez @username.\н"
+                           "Прокачать уровни - /upgrade")
 
 @bot.message_handler(commands=['events'])
 def events_command(message):
-    bot.reply_to(message, "💵Информация о текущих событиях:\n"
+    bot.reply_to(message, "💵Информация о текущих событиях:\н"
                           "⭐️В честь возвращения Школьного с фермы мы запускаем эевент Возвращение!\nВремя перезарядки снижено до 3-х часов!\nУ вас есть шанс получить 100 рабов на свою ферму!.")
 
-@bot.message_handler(commands=['upgradeinfo'])
-def events_command(message):
-    bot.reply_to(message, "💵Прокачка рабовладельца даёт вам +20% шанса к получению дополнительных рабов на свою ферму за каждый уровень от 1 до 10. Максимум: 5.\nПрокачка фермы повышает максимально возможное число получения рабов за 1 игру на 5 за каждый уровень.\nСпособность вампиризм даёт 40% шанс выкачать из рандомного игрока очки от 1 до 5.")
-
-# Command /battlez
 @bot.message_handler(commands=['battlez'])
 def battlez_command(message):
     try:
@@ -283,9 +277,7 @@ def handle_battle_callback(call):
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                           text=f"Битва завершена! @{winner_username} победил @{loser_username} и получил {points} очков.\n\n"
                                f"Баланс @{winner_username}: {winner_points} Школьных.\n"
-                               f"Баланс @{loser_username}: {loser_points} Школьных.")
-
-bot.register_callback_query_handler(handle_battle_callback, func=lambda call: call.data.startswith("accept_battle"))
+                               f"Баланс @{loser_username}: {losер_points} Школьных.")
 
 @bot.message_handler(commands=['upgrade'])
 def upgrade_command(message):
@@ -300,9 +292,9 @@ def upgrade_command(message):
     conn.close()
 
     markup = InlineKeyboardMarkup()
-    level_button = InlineKeyboardButton(f"Повысить уровень рабовладельца (цена: {clprice})", callback_data=f"upgrade_character|{user_id}|{group_id}")
-    farm_button = InlineKeyboardButton(f"Повысить уровень фермы (цена: {farmprice})", callback_data=f"upgrade_farm|{user_id}|{group_id}")
-    vamp_button = InlineKeyboardButton(f"Купить вампиризм (цена: {vamprice})", callback_data=f"upgrade_vampirism|{user_id}|{group_id}")
+    level_button = InlineKeyboardButton(f"Рабовладелец: {clprice})", callback_data=f"upgrade_character|{user_id}|{group_id}")
+    farm_button = InlineKeyboardButton(f"Ферма: {farmprice})", callback_data=f"upgrade_farm|{user_id}|{group_id}")
+    vamp_button = InlineKeyboardButton(f"Вампиризм: {vamprice})", callback_data=f"upgrade_vampirism|{user_id}|{group_id}")
     markup.add(level_button, farm_button, vamp_button)
     
     bot.reply_to(message, "Выберите, что вы хотите улучшить:", reply_markup=markup)
@@ -322,10 +314,10 @@ def handle_upgrade_callback(call):
         if points >= clprice and character_level < 5:
             points -= clprice
             character_level += 1
-            clprice = int(clprice * 1.2)
+            clprice = int(clprice * 1.3)
             cursor.execute(f"UPDATE '{group_id}' SET points = ?, character_level = ?, clprice = ? WHERE user_id = ?", (points, character_level, clprice, user_id))
             conn.commit()
-            bot.answer_callback_query(call.id, f"Уровень рабовладельца повышен до {character_level}!")
+            bot.answer_callback_query(call.id, f"Уровень персонажа повышен до {character_level}!")
         else:
             bot.answer_callback_query(call.id, "Недостаточно очков для повышения уровня или достигнут максимальный уровень.")
 
@@ -345,12 +337,12 @@ def handle_upgrade_callback(call):
         if points >= farmprice:
             points -= farmprice
             farm_level += 1
-            farmprice = int(farmprice * 1.3)
+            farmprice = int(farmprice * 1.2)
             cursor.execute(f"UPDATE '{group_id}' SET points = ?, farm_level = ?, farmprice = ? WHERE user_id = ?", (points, farm_level, farmprice, user_id))
             conn.commit()
             bot.answer_callback_query(call.id, f"Уровень фермы повышен до {farm_level}!")
         else:
-            bot.answer_callback_query(call.id, "Недостаточно очков для повышения уровня или достигнут максимальный уровень.")
+            bot.answer_callback_query(call.id, "Недостаточно очков для повышения уровня.")
 
         conn.close()
 
@@ -372,10 +364,11 @@ def handle_upgrade_callback(call):
             conn.commit()
             bot.answer_callback_query(call.id, "Вампиризм прокачан!")
         else:
-            bot.answer_callback_query(call.id, "Недостаточно очков для покупи или он уже куплен.")
+            bot.answer_callback_query(call.id, "Недостаточно очков для прокачки вампиризма или он уже прокачан.")
 
         conn.close()
 
 bot.register_callback_query_handler(handle_upgrade_callback, func=lambda call: call.data.startswith("upgrade"))
+bot.register_callback_query_handler(handle_battle_callback, func=lambda call: call.data.startswith("accept_battle"))
 
 bot.polling(none_stop=True)
