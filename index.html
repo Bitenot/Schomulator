@@ -1,54 +1,84 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bot Documentation</title>
+    <title>Документация бота</title>
     <style>
         body {
-            background-color: #0F0F0F;
-            color: #FFFFFF;
-            font-family: Arial, sans-serif;
-            text-align: center;
-        }
-        h1 {
-            font-size: 48px;
-            margin-bottom: 20px;
+            background-color: #1e1e1e;
+            color: #dcdcdc;
+            font-family: Consolas, monospace;
+            padding: 20px;
         }
         .container {
-            width: 90%;
-            max-width: 1000px;
-            margin: 20px auto;
-        }
-        .box {
-            border: 2px solid #000000;
-            border-radius: 10px;
+            max-width: 900px;
+            margin: auto;
+            background: #252526;
             padding: 20px;
-            margin-bottom: 20px;
-            text-align: left;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
         }
-        .box h2 {
-            font-size: 32px;
-            margin-bottom: 10px;
+        h1 {
+            font-size: 36px;
+            color: #569cd6;
         }
-        .box p {
-            font-size: 32px;
+        pre {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 24px;
+        }
+        .comment {
+            color: #6a9955;
+        }
+        .keyword {
+            color: #569cd6;
+        }
+        .string {
+            color: #ce9178;
+        }
+        .number {
+            color: #b5cea8;
         }
     </style>
 </head>
 <body>
-    <h1>Bot Documentation</h1>
     <div class="container">
-        <div class="box">
-            <h2>Use of bot</h2>
-            <p>/play - изменяет текущий баланс игрока.</p><p>/help - список команд.</p><p>/statistic - статистика игрока.</p><p>upgrade - прокачка игрока.</p>
-            <p>/upgradeinfo - информация о каждом аспекте прокачки.</p><p>/events - текущие события.</p><p>/top - глобальный топ</p><p>/localtop - локальный топ.</p>
-            <p>/batlez - сражение с другими игроками</p>
-        </div>
-        <div class="box">
-            <h2>Command algorithms</h2>
-            <p></p>
-        </div>
+        <h1>Документация бота</h1>
+        <p>/play использует библиотеку <span class="keyword">random</span> Python, случайно выбирая число в диапазоне от 0 до 1, что представляет собой систему процентов.</p>
+        <pre>
+<span class="keyword">if</span> random.random() &lt; <span class="number">0.05</span>:
+    delta = <span class="number">150</span>
+    bot.reply_to(message, <span class="string">"🎉 Джекпот! Вы выиграли 150 очков! 🎉"</span>)
+<span class="keyword">elif</span> random.random() &lt; <span class="number">0.3</span>:
+    delta = -random.randint(<span class="number">1</span>, <span class="number">5</span>)
+<span class="keyword">else</span>:
+    delta = random.randint(<span class="number">1</span>, <span class="number">10</span> + (farm_level - <span class="number">1</span>) * <span class="number">5</span>)
+
+<span class="keyword">if</span> character_level &gt; <span class="number">1</span> and random.random() &lt; <span class="number">0.1</span> + <span class="number">0.25</span> * (character_level - <span class="number">1</span>):
+    delta += random.randint(<span class="number">1</span>, <span class="number">10</span> + (farm_level - <span class="number">1</span>) * <span class="number">5</span>)
+    bot.reply_to(message, <span class="string">f"Вы сыграли ещё раз и получили: {delta} очков"</span>)
+
+<span class="keyword">if</span> vampirism and random.random() &lt; <span class="number">0.4</span>:
+    cursor.execute(f"SELECT user_id FROM `group_id` WHERE user_id != ?", (user_id,))
+    other_users = cursor.fetchall()
+    <span class="keyword">if</span> other_users:
+        victim_id = random.choice(other_users)[<span class="number">0</span>]
+        cursor.execute(f"UPDATE `group_id` SET points = points - ? WHERE user_id = ?", (<span class="number">5</span>, victim_id))
+        delta += <span class="number">5</span>
+
+points += delta
+        </pre>
+        <p>Алгоритм распределения очков:</p>
+        <ul>
+            <li>Шанс джекпота: 5%, приз 150 очков.</li>
+            <li>Шанс потери очков: 30%, потеря от 1 до 5 очков.</li>
+            <li>Шанс получения очков: 65%, награда зависит от уровня фермы.</li>
+            <li>Дополнительные очки зависят от уровня персонажа.</li>
+            <li>Алгоритм вампиризма: 40% шанс украсть 5 очков у случайного игрока.</li>
+        </ul>
     </div>
 </body>
 </html>
