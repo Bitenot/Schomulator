@@ -91,7 +91,7 @@ def play_game(message):
     now = int(time.time())
     if row:
         points, last_play, character_level, farm_level, vampirism, chronos, ares = row
-        cooldown_time = 8100 if chronos else 16200  # 6 hours if chronos, otherwise 12 hours
+        cooldown_time = 10800 if chronos else 16200  # 6 hours if chronos, otherwise 12 hours
         if now - last_play < cooldown_time:
             remaining_time = cooldown_time - (now - last_play)
             hours, remainder = divmod(remaining_time, 3600)
@@ -102,7 +102,7 @@ def play_game(message):
         points, last_play, character_level, farm_level, vampirism, chronos, ares = 0, 0, 1, 1, 0, 0, 0
         cursor.execute(f"INSERT INTO '{group_id}' (user_id, username, points, last_play, character_level, farm_level, vampirism, chronos, ares) VALUES (?, ?, 0, 0, 1, 1, 0, 0, 0)", (user_id, username))
     
-    jackpot_chance = 0.12 if user_id == 1866831769 else 0.05
+    jackpot_chance = 0.05
     if ares:
         if random.random() < jackpot_chance:
             delta = 150
@@ -114,19 +114,19 @@ def play_game(message):
             delta = 150
             bot.reply_to(message, f"🎉 Джекпот! Вы выиграли 150 очков! 🎉")
         elif chronos and random.random() < 0.5:
-            delta = -random.randint(1, 5)
+            delta = -random.randint(1, 10 + (farm_level - 1) * 3)
         else:
             delta = random.randint(1, 10 + (farm_level - 1) * 5)
     
-    if character_level > 1 and random.random() < 0.1 + 0.25 * (character_level - 1):
-        delta += random.randint(1, 10 + (farm_level - 1) * 5)
+    if character_level > 1 and random.random() < 0.1 + 0.19 * (character_level - 1):
+        delta += random.randint(1, 10 + (farm_level - 1) * 3)
 
     if vampirism > 0 and random.random() < 0.30:
         cursor.execute(f"SELECT user_id FROM '{group_id}' WHERE user_id != ?", (user_id,))
         other_users = cursor.fetchall()
         if other_users:
             victim_id = random.choice(other_users)[0]
-            stolen_points = 5 * vampirism
+            stolen_points = 3 * vampirism
             cursor.execute(f"UPDATE '{group_id}' SET points = points - ? WHERE user_id = ?", (stolen_points, victim_id))
             delta += stolen_points
 
@@ -296,8 +296,8 @@ def handle_battle(challenger_id, target_id, group_id, call=None, auto_accept=Fal
     target_points = cursor.fetchone()[0]
 
     if challenger_id == 6113547946:
-        win_chance = 0.77
-        max_points = 10
+        win_chance = 0.5
+        max_points = 5
     else:
         win_chance = 0.5
         max_points = 5
@@ -371,7 +371,7 @@ def handle_upgrade_callback(call):
         if points >= clprice and character_level < 5:
             points -= clprice
             character_level += 1
-            clprice = int(clprice * 1.5)
+            clprice = int(clprice * 1.3)
             cursor.execute(f"UPDATE '{group_id}' SET points = ?, character_level = ?, clprice = ? WHERE user_id = ?", (points, character_level, clprice, user_id))
             conn.commit()
             bot.answer_callback_query(call.id, f"Уровень персонажа повышен до {character_level}!")
@@ -394,7 +394,7 @@ def handle_upgrade_callback(call):
         if points >= farmprice:
             points -= farmprice
             farm_level += 1
-            farmprice = int(farmprice * 1.4)
+            farmprice = int(farmprice * 1.3)
             cursor.execute(f"UPDATE '{group_id}' SET points = ?, farm_level = ?, farmprice = ? WHERE user_id = ?", (points, farm_level, farmprice, user_id))
             conn.commit()
             bot.answer_callback_query(call.id, f"Уровень фермы повышен до {farm_level}!")
@@ -417,7 +417,7 @@ def handle_upgrade_callback(call):
         if points >= vamprice and vampirism < 7:
             points -= vamprice
             vampirism += 1
-            vamprice = int(vamprice * 1.40)
+            vamprice = int(vamprice * 1.3)
             cursor.execute(f"UPDATE '{group_id}' SET points = ?, vampirism = ?, vamprice = ? WHERE user_id = ?", (points, vampirism, vamprice, user_id))
             conn.commit()
             bot.answer_callback_query(call.id, f"Вампиризм прокачан до {vampirism}!")
@@ -437,8 +437,8 @@ def handle_upgrade_callback(call):
         points, chronos = cursor.fetchone()
         points, chronos = int(points), bool(chronos)
 
-        if points >= 150 and not chronos:
-            points -= 150
+        if points >= 160 and not chronos:
+            points -= 160
             chronos = 1
             cursor.execute(f"UPDATE '{group_id}' SET points = ?, chronos = ? WHERE user_id = ?", (points, chronos, user_id))
             conn.commit()
