@@ -118,7 +118,7 @@ def play_game(message):
         else:
             delta = random.randint(1, 10 + (farm_level - 1) * 5)
     
-    if character_level > 1 and random.random() < 0.1 + 0.19 * (character_level - 1):
+    if character_level > 1 and random.random() < 0.1 + 0.15 * (character_level - 1):
         delta += random.randint(1, 10 + (farm_level - 1) * 3)
 
     if vampirism > 0 and random.random() < 0.30:
