@@ -14,7 +14,7 @@ TOKEN = "7706693485:AAHLoO_HL0SEtjVlHBufRVPaX6DTB1_kVv8"
 
 bot = telebot.TeleBot(TOKEN)
 AUTHORIZED_USER_ID = 1866831769
-DB_PATH = str(Path(__file__).parent / "database.db")
+DB_PATH = "/home/bitnami/schoolar/database.db"
 
 # Function to create a table if necessary and add new columns if they don't exist
 def create_table(group_id):
