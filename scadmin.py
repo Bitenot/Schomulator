@@ -10,6 +10,23 @@ ADMIN_ID = 1766101476
 bot = telebot.TeleBot(TOKEN)
 
 DB_PATH = "/home/bitnami/schoolar/database.db"
+ADMINS_DB_PATH = "/home/bitnami/schoolar/admins.db"
+
+def init_admins_db():
+    conn = sqlite3.connect(ADMINS_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS admins (
+            user_id INTEGER PRIMARY KEY,
+            username TEXT
+        )
+    """)
+    # Добавляем главного админа, если его нет
+    cursor.execute("INSERT OR IGNORE INTO admins (user_id, username) VALUES (?, ?)", (ADMIN_ID, ""))
+    conn.commit()
+    conn.close()
+
+init_admins_db()
 
 def create_table(group_id):
     conn = sqlite3.connect(DB_PATH)
@@ -34,7 +51,41 @@ def create_table(group_id):
     conn.close()
 
 def check_admin(user_id):
-    return user_id == ADMIN_ID
+    conn = sqlite3.connect(ADMINS_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id FROM admins WHERE user_id = ?", (user_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return result is not None or user_id == ADMIN_ID
+
+@bot.message_handler(commands=['admin'])
+def admin_command(message):
+    if not message.from_user.id == ADMIN_ID:
+        bot.reply_to(message, "У вас нет прав для выполнения этой команды.")
+        return
+
+    try:
+        _, identifier = message.text.split()
+    except ValueError:
+        bot.reply_to(message, "Использование: /admin id/username")
+        return
+
+    conn = sqlite3.connect(ADMINS_DB_PATH)
+    cursor = conn.cursor()
+
+    # Проверяем, является ли identifier числом (ID)
+    if identifier.isdigit():
+        user_id = int(identifier)
+        cursor.execute("INSERT OR IGNORE INTO admins (user_id, username) VALUES (?, ?)", (user_id, ""))
+        bot.reply_to(message, f"Пользователь с ID {user_id} добавлен в администраторы.")
+    else:
+        # Удаляем @ если он есть
+        username = identifier[1:] if identifier.startswith('@') else identifier
+        cursor.execute("INSERT OR IGNORE INTO admins (user_id, username) VALUES (NULL, ?)", (username,))
+        bot.reply_to(message, f"Пользователь @{username} добавлен в администраторы.")
+
+    conn.commit()
+    conn.close()
 
 @bot.message_handler(commands=['ban'])
 def ban_user(message):
@@ -226,6 +277,3 @@ def stop_bot(message):
     bot.stop_polling()
 
 bot.polling(none_stop=True)
-```
-
-Make sure to replace `YOUR_BOT_TOKEN_HERE` with your actual bot token. This code restricts the admin commands to the user with ID `1766101476`.
