@@ -499,7 +499,7 @@ def handle_upgrade_callback(call):
         conn.close()
 
 
-bot.register_callback_query_handler(handle_upgrade_callback, func=lambda call: call.data.startswith("upgrade"))
+bot.register_callback_query_handler(handle_upgrade_callback, func=lambda call: call.data.startswith(("upgrade", "buy_chronos")))
 bot.register_callback_query_handler(handle_battle_callback, func=lambda call: call.data.startswith("accept_battle"))
 
 bot.polling(none_stop=True)
