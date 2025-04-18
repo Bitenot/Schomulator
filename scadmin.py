@@ -3,6 +3,8 @@
 import sqlite3
 import telebot
 import time
+import datetime
+import pytz
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 TOKEN = "8011487557:AAGpAS7G9CvJhvBdSpiiYd5DsUHnEOniOaI"
@@ -50,6 +52,32 @@ def create_table(group_id):
     conn.commit()
     conn.close()
 
+def get_time_word(value: int, word_type: str) -> str:
+    forms = {
+        'секунда': ('секунда', 'секунды', 'секунд'),
+        'минута': ('минута', 'минуты', 'минут'),
+        'час': ('час', 'часа', 'часов'),
+    }
+
+    if word_type not in forms:
+        raise ValueError("Неверный тип времени. Используй: 'секунда', 'минута', 'час'.")
+
+    n = abs(value)
+    last_two = n % 100
+    last_digit = n % 10
+
+    # Определение формы слова
+    if 11 <= last_two <= 14:
+        form = forms[word_type][2]
+    elif last_digit == 1:
+        form = forms[word_type][0]
+    elif 2 <= last_digit <= 4:
+        form = forms[word_type][1]
+    else:
+        form = forms[word_type][2]
+
+    return f"{value} {form}"
+
 def check_admin(user_id):
     conn = sqlite3.connect(ADMINS_DB_PATH)
     cursor = conn.cursor()
@@ -61,13 +89,13 @@ def check_admin(user_id):
 @bot.message_handler(commands=['admin'])
 def admin_command(message):
     if not message.from_user.id == ADMIN_ID:
-        bot.reply_to(message, "У вас нет прав для выполнения этой команды.")
+        bot.reply_to(message, "❌ У вас нет прав для выполнения этой команды.")
         return
 
     try:
         _, identifier = message.text.split()
     except ValueError:
-        bot.reply_to(message, "Использование: /admin id/username")
+        bot.reply_to(message, "✅ Использование: /admin id/username")
         return
 
     conn = sqlite3.connect(ADMINS_DB_PATH)
@@ -77,20 +105,27 @@ def admin_command(message):
     if identifier.isdigit():
         user_id = int(identifier)
         cursor.execute("INSERT OR IGNORE INTO admins (user_id, username) VALUES (?, ?)", (user_id, ""))
-        bot.reply_to(message, f"Пользователь с ID {user_id} добавлен в администраторы.")
+        bot.reply_to(message, f"✅ Пользователь с ID {user_id} добавлен в администраторы.")
     else:
         # Удаляем @ если он есть
         username = identifier[1:] if identifier.startswith('@') else identifier
         cursor.execute("INSERT OR IGNORE INTO admins (user_id, username) VALUES (NULL, ?)", (username,))
-        bot.reply_to(message, f"Пользователь @{username} добавлен в администраторы.")
+        bot.reply_to(message, f"✅ Пользователь @{username} добавлен в администраторы.")
 
     conn.commit()
     conn.close()
 
+@bot.message_handler(commands=['admins'])
+def admin_list(message):
+    bot.reply_to(message, f"🛡️ Действующие администраторы:\n\n"
+                               f"👑 @Thermobyte - Owner:\n\tУровень доступа: o5.\n\tРоль: разработчик\n\tСрок: Навсегда\n"
+                               f"⚜️ @lllapas - Heiress:\n\tУровень доступа: o4\n\tРоль: наследник владельца\n\tСрок: Навсегда\n"
+                               f"🤖 @AC_EvelineBot - Admin-bot.\n\tУровень доступа: o3.5\n\tРоль: админ панель\n\tСрок: Навсегда")
+
 @bot.message_handler(commands=['ban'])
 def ban_user(message):
     if not check_admin(message.from_user.id):
-        bot.reply_to(message, "У вас нет прав для выполнения этой команды.")
+        bot.reply_to(message, "❌ У вас нет прав для выполнения этой команды.")
         return
 
     try:
@@ -99,7 +134,7 @@ def ban_user(message):
             raise ValueError("Неправильный формат имени пользователя.")
         ban_time = int(ban_time)
     except ValueError:
-        bot.reply_to(message, "Использование: /ban @username time (минуты)")
+        bot.reply_to(message, "✅ Использование: /ban @username time (минуты)")
         return
 
     group_id = message.chat.id
@@ -110,7 +145,7 @@ def ban_user(message):
     target_user_id = cursor.fetchone()
     
     if not target_user_id:
-        bot.reply_to(message, f"Пользователь {target_username} не найден в этой группе.")
+        bot.reply_to(message, f"❌ Пользователь {target_username} не найден в этой группе.")
         conn.close()
         return
 
@@ -119,12 +154,12 @@ def ban_user(message):
     cursor.execute(f"UPDATE '{group_id}' SET last_play = ? WHERE user_id = ?", (ban_until, target_user_id))
     conn.commit()
     conn.close()
-    bot.reply_to(message, f"Пользователь {target_username} забанен на {ban_time} минут.")
+    bot.reply_to(message, f"✅ Пользователь {target_username} забанен на {ban_time} минут.")
 
 @bot.message_handler(commands=['reset'])
 def reset_data(message):
     if not check_admin(message.from_user.id):
-        bot.reply_to(message, "У вас нет прав для выполнения этой команды.")
+        bot.reply_to(message, "❌ У вас нет прав для выполнения этой команды.")
         return
 
     try:
@@ -132,7 +167,7 @@ def reset_data(message):
         if not target_username.startswith('@'):
             raise ValueError("Неправильный формат имени пользователя.")
     except ValueError:
-        bot.reply_to(message, "Использование: /reset time/stats @username")
+        bot.reply_to(message, "✅ Использование: /reset time/stats @username")
         return
 
     group_id = message.chat.id
@@ -143,7 +178,7 @@ def reset_data(message):
     target_user_id = cursor.fetchone()
     
     if not target_user_id:
-        bot.reply_to(message, f"Пользователь {target_username} не найден в этой группе.")
+        bot.reply_to(message, f"❌ Пользователь {target_username} не найден в этой группе.")
         conn.close()
         return
 
@@ -151,10 +186,10 @@ def reset_data(message):
 
     if subcommand == 'time':
         cursor.execute(f"UPDATE '{group_id}' SET last_play = 0 WHERE user_id = ?", (target_user_id,))
-        bot.reply_to(message, f"Время перезарядки для {target_username} сброшено.")
+        bot.reply_to(message, f"✅ Время перезарядки для {target_username} сброшено.")
     elif subcommand == 'stats':
         cursor.execute(f"UPDATE '{group_id}' SET points = 0, last_play = 0, character_level = 1, farm_level = 1, vampirism = 0, clprice = 70, farmprice = 120, vamprice = 100, chronos = 0, ares = 0 WHERE user_id = ?", (target_user_id,))
-        bot.reply_to(message, f"Статистика {target_username} сброшена.")
+        bot.reply_to(message, f"✅ Статистика {target_username} сброшена.")
     else:
         bot.reply_to(message, "Использование: /reset time/stats @username")
         return
@@ -165,7 +200,7 @@ def reset_data(message):
 @bot.message_handler(commands=['add'])
 def add_points(message):
     if not check_admin(message.from_user.id):
-        bot.reply_to(message, "У вас нет прав для выполнения этой команды.")
+        bot.reply_to(message, "❌ У вас нет прав для выполнения этой команды.")
         return
 
     try:
@@ -174,7 +209,7 @@ def add_points(message):
             raise ValueError("Неправильный формат команды.")
         points = int(points)
     except ValueError:
-        bot.reply_to(message, "Использование: /add points @username количество")
+        bot.reply_to(message, "✅ Использование: /add points @username количество")
         return
 
     group_id = message.chat.id
@@ -185,7 +220,7 @@ def add_points(message):
     target_user_id = cursor.fetchone()
     
     if not target_user_id:
-        bot.reply_to(message, f"Пользователь {target_username} не найден в этой группе.")
+        bot.reply_to(message, f"❌ Пользователь {target_username} не найден в этой группе.")
         conn.close()
         return
 
@@ -193,19 +228,19 @@ def add_points(message):
     cursor.execute(f"UPDATE '{group_id}' SET points = points + ? WHERE user_id = ?", (points, target_user_id))
     conn.commit()
     conn.close()
-    bot.reply_to(message, f"Пользователю {target_username} добавлено {points} очков.")
+    bot.reply_to(message, f"✅ Пользователю {target_username} добавлено {points} очков.")
 
 @bot.message_handler(commands=['set'])
 def set_skill(message):
     if not check_admin(message.from_user.id):
-        bot.reply_to(message, "У вас нет прав для выполнения этой команды.")
+        bot.reply_to(message, "❌ У вас нет прав для выполнения этой команды.")
         return
 
     try:
         _, subcommand, skill_name, level = message.text.split()
         level = int(level)
     except ValueError:
-        bot.reply_to(message, "Использование: /set skill название уровень")
+        bot.reply_to(message, "✅ Использование: /set skill название уровень")
         return
 
     group_id = message.chat.id
@@ -218,7 +253,7 @@ def set_skill(message):
     }.get(skill_name.lower())
 
     if not skill_column:
-        bot.reply_to(message, "Недопустимое название способности. Используйте character, farm, vampirism, ares или chronos.")
+        bot.reply_to(message, "❌ Недопустимое название способности. Используйте character, farm, vampirism, ares или chronos.")
         return
 
     conn = sqlite3.connect(DB_PATH)
@@ -226,12 +261,12 @@ def set_skill(message):
     cursor.execute(f"UPDATE '{group_id}' SET {skill_column} = ? WHERE user_id = ?", (level, message.from_user.id))
     conn.commit()
     conn.close()
-    bot.reply_to(message, f"Уровень способности {skill_name} установлен на {level}.")
+    bot.reply_to(message, f"✅ Уровень способности {skill_name} установлен на {level}.")
 
-@bot.message_handler(commands=['info'])
+@bot.message_handler(commands=['getdata'])
 def user_info(message):
     if not check_admin(message.from_user.id):
-        bot.reply_to(message, "У вас нет прав для выполнения этой команды.")
+        bot.reply_to(message, "❌ У вас нет прав для выполнения этой команды.")
         return
 
     try:
@@ -239,7 +274,7 @@ def user_info(message):
         if not target_username.startswith('@'):
             raise ValueError("Неправильный формат имени пользователя.")
     except ValueError:
-        bot.reply_to(message, "Использование: /info @username")
+        bot.reply_to(message, "✅ Использование: /info @username")
         return
 
     group_id = message.chat.id
@@ -251,29 +286,28 @@ def user_info(message):
     conn.close()
 
     if not user_data:
-        bot.reply_to(message, f"Пользователь {target_username} не найден.")
+        bot.reply_to(message, f"❌ Пользователь {target_username} не найден.")
         return
 
-    response = (f"Информация о {target_username}:\n"
-                f"Очки: {user_data[2]}\n"
-                f"Время последней игры: {user_data[3]}\n"
-                f"Уровень персонажа: {user_data[4]}\n"
-                f"Уровень фермы: {user_data[5]}\n"
-                f"Вампиризм: {user_data[6]}\n"
-                f"Цена повышения уровня персонажа: {user_data[7]}\n"
-                f"Цена повышения уровня фермы: {user_data[8]}\n"
-                f"Цена повышения вампиризма: {user_data[9]}\n"
-                f"Chronos: {'Да' if user_data[10] else 'Нет'}\n"
-                f"Ares: {'Да' if user_data[11] else 'Нет'}")
+    response = (f"📜 Информация о {target_username}:\n"
+                f"👨🏿‍🦲 Очки: {user_data[2]}\n"
+                f"🕐 Время последней игры: {user_data[3]}\n"
+                f"🧑🏻‍🌾 Уровень персонажа: {user_data[4]}\n"
+                f"🏡 Уровень фермы: {user_data[5]}\n"
+                f"🧛🏻‍♀️ Вампиризм: {user_data[6]}\n"
+                f"💵 Цена повышения уровня персонажа: {user_data[7]}\n"
+                f"💵 Цена повышения уровня фермы: {user_data[8]}\n"
+                f"💵 Цена повышения вампиризма: {user_data[9]}\n"
+                f"⌛️ Часы кроноса: {'Да' if user_data[10] else 'Нет'}\n"
+                f"➖ Минусофобия: {'Да' if user_data[11] else 'Нет'}")
     bot.reply_to(message, response)
 
 @bot.message_handler(commands=['stop'])
 def stop_bot(message):
     if not check_admin(message.from_user.id):
-        bot.reply_to(message, "У вас нет прав для выполнения этой команды.")
+        bot.reply_to(message, "❌ У вас нет прав для выполнения этой команды.")
         return
-
-    bot.reply_to(message, "Бот остановлен.")
+    bot.reply_to(message, "✅ Бот остановлен.")
     bot.stop_polling()
 
 bot.polling(none_stop=True)

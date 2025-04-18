@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 import sqlite3
-from eveline import ChaosEcosystem
-from eveline import DigitalOrganism
 import telebot
 import random
 import time
@@ -17,25 +15,6 @@ TOKEN = "7706693485:AAHLoO_HL0SEtjVlHBufRVPaX6DTB1_kVv8"
 bot = telebot.TeleBot(TOKEN)
 AUTHORIZED_USER_ID = 1866831769
 DB_PATH = "/home/bitnami/schoolar/database.db"
-
-
-class Game:
-    def __init__(self):
-        # Создаем одного цифрового организма с уникальным ID
-        self.organism = DigitalOrganism(id=1)
-
-    def play_round(self):
-        # Проходим эволюцию организма
-        self.organism.evolve()
-
-        # Получаем случайное значение на основе хаоса внутри организма
-        win_chance = self.organism.signal()
-        return win_chance
-
-game = Game()
-def play():
-    chance = game.play_round()
-    return chance
 
 def create_table(group_id):
     conn = sqlite3.connect(DB_PATH)
@@ -76,9 +55,34 @@ def create_table(group_id):
     conn.close()
 
 
-def check_achievement(points):
-    return "\n\n🔞Достижения: Настя на ферме🔞" if points > 500 else ""
+def get_time_word(value: int, word_type: str) -> str:
+    forms = {
+        'секунда': ('секунда', 'секунды', 'секунд'),
+        'минута': ('минута', 'минуты', 'минут'),
+        'час': ('час', 'часа', 'часов'),
+    }
 
+    if word_type not in forms:
+        raise ValueError("Неверный тип времени. Используй: 'секунда', 'минута', 'час'.")
+
+    n = abs(value)
+    last_two = n % 100
+    last_digit = n % 10
+
+    # Определение формы слова
+    if 11 <= last_two <= 14:
+        form = forms[word_type][2]
+    elif last_digit == 1:
+        form = forms[word_type][0]
+    elif 2 <= last_digit <= 4:
+        form = forms[word_type][1]
+    else:
+        form = forms[word_type][2]
+
+    return f"{value} {form}"
+
+def check_achievement(points):
+    return "\n\n🔞 Достижения: Настя на ферме 🔞" if points > 500 else ""
 
 def get_rankings():
     conn = sqlite3.connect(DB_PATH)
@@ -96,6 +100,9 @@ def get_rankings():
     conn.close()
     return global_ranks
 
+@bot.message_handler(commands=['admins'])
+def admin_list(message):
+    bot.reply_to(message, "🛡️ Действующие администраторы:\n\n👑 @Thermobyte - Owner\n⚜️ @lllapas - Heiress\n🤖 @AC_EvelineBot - Admin-bot")
 
 @bot.message_handler(commands=['play'])
 def play_game(message):
@@ -115,13 +122,13 @@ def play_game(message):
     now = int(time.time())
     if row:
         points, last_play, character_level, farm_level, vampirism, chronos, ares = row
-        cooldown_time = 3 if chronos else 3
+        cooldown_time = 11880 if chronos else 19800
         if now - last_play < cooldown_time:
             remaining_time = cooldown_time - (now - last_play)
             hours, remainder = divmod(remaining_time, 3600)
             minutes, seconds = divmod(remainder, 60)
             bot.reply_to(message,
-                         f"Не запрягайте своих рабов, подождите {hours} час {minutes} минут {seconds} секунд. У нас 21 век!")
+                         f"Не запрягайте своих рабов, подождите {get_time_word(hours, 'час')} {get_time_word(minutes, 'минута')} {get_time_word(seconds, 'секунда')}. У нас 21 век!")
             return
     else:
         points, last_play, character_level, farm_level, vampirism, chronos, ares = 0, 0, 1, 1, 0, 0, 0
@@ -131,29 +138,33 @@ def play_game(message):
 
 
     jackpot_chance = 0.05
-    win_chance = play()
-    if play() <= jackpot_chance:
-        delta = 150
-        bot.reply_to(message, f"🎉 Джекпот! Вы выиграли 150 очков! 🎉")
-    elif random.random() <= (1-win_chance):
-        delta = random.randint(1, 10 + (farm_level - 1) * 5)
-        bot.reply_to(message, f"Шанс победы в этом раунде был: {round(win_chance*100, 2)}%")
+    if ares:
+        if random.random() <= jackpot_chance:
+            delta = 150
+            bot.reply_to(message, f"🎉 Джекпот! Вы выиграли 150 очков! 🎉")
+        else:
+            delta = random.randint(1, 10 + (farm_level - 1) * 5)
+        
     else:
-        delta = -random.randint(1, 10 + (farm_level - 1) * 3)
-        bot.reply_to(message, f"Шанс победы в этом раунде был: {round(win_chance*100, 2)}%")
+        if random.random() <= jackpot_chance:
+            delta = 150
+            bot.reply_to(message, f"🎉 Джекпот! Вы выиграли 150 очков! 🎉")
+        elif random.random() < 0.65:
+            delta = random.randint(1, 10 + (farm_level - 1) * 5)
+        else:
+            delta = -random.randint(1, 10 + (farm_level - 1) * 3)
 
-    if character_level > 1 and play() < 0.1 + 0.15 * (character_level - 1):
+    if character_level > 1 and random.random() < 0.1 + 0.15 * (character_level - 1):
         delta += random.randint(1, 10 + (farm_level - 1) * 3)
 
-    vampirism_chance = play()
-    if vampirism > 0 and random.random() < vampirism_chance:
+    if vampirism > 0 and random.random() < 0.3:
         cursor.execute(f"SELECT user_id FROM '{group_id}' WHERE user_id != ?", (user_id,))
         other_users = cursor.fetchall()
         if other_users:
             victim_id = random.choice(other_users)[0]
             stolen_points = 3 * vampirism
             cursor.execute(f"UPDATE '{group_id}' SET points = points - ? WHERE user_id = ?", (stolen_points, victim_id))
-            bot.reply_to(message, f"Шанс забрать очки был: {round(vampirism_chance*100, 2)}%")
+            bot.reply_to(message, f"Вы забрали {stolen_points} Школьных")
             delta += stolen_points
 
     points += delta
@@ -171,10 +182,9 @@ def play_game(message):
     local_place = local_ranks.get(user_id, "N/A")
     global_place = global_ranks.get(user_id, "N/A")
 
-    bot.reply_to(message, f"@{username}, твоё количество рабов изменилось на {delta}.\n"
-                          f"Теперь у вас {points} Школьных.\n"
-                          f"Вы занимаете {local_place} место в локальном топе."
-                          f"{achievement}")
+    bot.reply_to(message, f"💵 @{username}, твоё количество рабов изменилось на {delta}.\n"
+                          f"👨🏿‍🦲 Теперь у вас {points} Школьных.\n"
+                          f"🏆 Вы занимаете {local_place} место в локальном топе.")
 
     conn.close()
 
@@ -194,18 +204,22 @@ def show_stats(message):
     conn.close()
 
     if not stats:
-        bot.reply_to(message, "Вы ещё не играли!")
+        bot.reply_to(message, "😰 Вы ещё не играли!")
         return
 
     username, points, character_level, farm_level, vampirism, chronos, ares = stats
-    response = f"@{username}, у вас {points} Школьных.\n" \
-               f"Уровень персонажа: {character_level}\n" \
-               f"Уровень фермы: {farm_level}\n" \
-               f"Вампиризм: {vampirism}\n" \
-               f"Минусофобия: {'Есть' if ares else 'Нету'}\n" \
-               f"Часы Кроноса: {'Есть' if chronos else 'Нету'}"
-    bot.reply_to(message, response)
+    achievement = check_achievement(points)
+    achievement_text = f"\n{achievement}" if achievement else "У вас нет достижений"
 
+    response = f"📜 Ваша статистика:\n\n"\
+               f"👨🏿‍🦲 @{username}, у вас {points} Школьных.\n" \
+               f"🧑🏻‍🌾 Уровень персонажа: {character_level}\n" \
+               f"🏡 Уровень фермы: {farm_level}\n" \
+               f"🧛🏻‍♀️ Вампиризм: {vampirism}\n" \
+               f"➖ Минусофобия: {'Есть' if ares else 'Нету'}\n" \
+               f"⌛️ Часы Кроноса: {'Есть' if chronos else 'Нету'}\n"\
+               f"🟡 {achievement_text}"
+    bot.reply_to(message, response)
 
 @bot.message_handler(commands=['localtop'])
 def show_stats(message):
@@ -219,11 +233,16 @@ def show_stats(message):
     conn.close()
 
     if not stats:
-        bot.reply_to(message, "Пока никто не играл!")
+        bot.reply_to(message, "👿 Пока никто не играл!")
         return
 
-    response = "🏆 Локальный рейтинг: \n" + "\n".join(
-        [f"{idx + 1}. @{row[0]} - {row[1]} Школьных" for idx, row in enumerate(stats)])
+    medals = ["🥇", "🥈", "🥉"]
+    response = "🏆 Локальный рейтинг:\n\n"
+
+    for idx, row in enumerate(stats):
+        medal = medals[idx] if idx < 3 else f"{idx + 1}."
+        response += f"{medal} @{row[0]} - {row[1]} 👨🏿‍🦲Школьных\n"
+
     bot.reply_to(message, response)
 
 
@@ -245,36 +264,45 @@ def global_top(message):
     # Exclude user with ID 6837339007
     users = {k: v for k, v in users.items() if k != 6837339007}
 
-    sorted_users = sorted(users.values(), key=lambda x: x[1], reverse=True)
-    top_list = "\n" + "\n".join([f"{i + 1}. @{user[0]} - {user[1]} рабов" for i, user in enumerate(sorted_users[:10])])
-    conn.close()
+    sorted_users = sorted(users.items(), key=lambda x: x[1][1], reverse=True)
 
-    bot.reply_to(message, "🏆Глобальный рейтинг:\n" + (top_list if top_list else "Пока никто не играет."))
+    medals = ["🥇", "🥈", "🥉"]
+    top_list = ""
+
+    for i, (uid, (uname, pts)) in enumerate(sorted_users[:10]):
+        prefix = medals[i] if i < 3 else f"{i + 1}."
+        if uid == 5375127224:
+            top_list += f"{prefix} @{uname} - ♾️ рабов\n"
+        else:
+            top_list += f"{prefix} @{uname} - {pts} рабов\n"
+
+    conn.close()
+    response = "🏆 Глобальный рейтинг:\n\n" + (top_list if top_list else "🤬 Пока никто не играет.")
+    bot.reply_to(message, response)
 
 
 @bot.message_handler(commands=['help'])
 def help_command(message):
     bot.reply_to(message,
-                 "Прокачать ферму Школьных - /play.\nПросмотреть статистику - /statistic.\nГлобальный топ фермеров - /top.\n"
-                 "Список команд: /commands.\n"
-                 "Бросить вызов другому игроку - /battlez @username.\n"
-                 "Прокачать уровни - /upgrade")
+                 "🏡 Прокачать ферму Школьных - /play.\n🧐 Просмотреть статистику - /statistic.\n🏆 Глобальный топ фермеров - /top.\n"
+                 "📖 Список команд: /commands.\n"
+                 "⚔️ Бросить вызов другому игроку - /battlez @username.\n"
+                 "⬆️ Прокачать уровни - /upgrade")
 
 
 @bot.message_handler(commands=['events'])
 def events_command(message):
-    bot.reply_to(message, "💵Информация о текущих событиях:\n"
-                          "Эвентов нет")
-
+    bot.reply_to(message, "📜 Информация о текущих событиях:\n"
+                          "❌ Финальная стадия разработки. Конец сезона!\n\n Игрок который по окончанию сезона наберёт больше всего очков или ценность его статистики будет самой высокой - 84грн в звёздах телеграм")
 
 @bot.message_handler(commands=['battlez'])
 def battlez_command(message):
     try:
         _, target_username = message.text.split()
         if not target_username.startswith('@'):
-            raise ValueError("Неправильный формат имени пользователя.")
+            raise ValueError("❌ Неправильный формат имени пользователя.")
     except ValueError:
-        bot.reply_to(message, "Использование: /battlez @username")
+        bot.reply_to(message, "✅ Использование: /battlez @username")
         return
 
     user_id = message.from_user.id
@@ -287,13 +315,13 @@ def battlez_command(message):
     target_user = cursor.fetchone()
 
     if not target_user:
-        bot.reply_to(message, f"Пользователь {target_username} не найден в этой группе.")
+        bot.reply_to(message, f"❌ Пользователь {target_username} не найден в этой группе.")
         conn.close()
         return
 
     target_user_id, target_points = target_user
-    if target_points == 0:
-        bot.reply_to(message, f"Пользователя @{target_username} нельзя вызвать на дуэль, так как у него 0 очков.")
+    if target_points <= 0:
+        bot.reply_to(message, f"❌ Пользователя @{target_username} нельзя вызвать на дуэль, так как у него недостаточно очков.")
         conn.close()
         return
 
@@ -301,10 +329,10 @@ def battlez_command(message):
         handle_battle(user_id, target_user_id, group_id, auto_accept=True)
     else:
         markup = InlineKeyboardMarkup()
-        accept_button = InlineKeyboardButton("Принять вызов",
+        accept_button = InlineKeyboardButton("✅",
                                              callback_data=f"accept_battle|{user_id}|{target_user_id}|{group_id}")
         markup.add(accept_button)
-        sent_message = bot.reply_to(message, f"@{username} бросил вызов {target_username}", reply_markup=markup)
+        sent_message = bot.reply_to(message, f"⚔️ @{username} бросил вызов {target_username}", reply_markup=markup)
     conn.close()
 
 
@@ -318,7 +346,7 @@ def handle_battle_callback(call):
     group_id = int(group_id)
 
     if call.from_user.id != target_id:
-        bot.answer_callback_query(call.id, "Вы не можете принять этот вызов.")
+        bot.answer_callback_query(call.id, "❌Вы не можете принять этот вызов.")
         return
 
     handle_battle(challenger_id, target_id, group_id, call=call)
@@ -334,12 +362,12 @@ def handle_battle(challenger_id, target_id, group_id, call=None, auto_accept=Fal
     cursor.execute(f"SELECT points FROM '{group_id}' WHERE user_id = ?", (target_id,))
     target_points = cursor.fetchone()[0]
 
-    if challenger_id == 6113547946:
-        win_chance = 0.5
-        max_points = 5
+    if challenger_id == 1766101476:
+        win_chance = 0.85
+        max_points = 25
     else:
         win_chance = 0.5
-        max_points = 5
+        max_points = 25
 
     if random.random() < win_chance:
         delta = random.randint(1, max_points)
@@ -362,20 +390,20 @@ def handle_battle(challenger_id, target_id, group_id, call=None, auto_accept=Fal
 
     if call:
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=f"Битва завершена! @{winner_username} победил @{loser_username} и получил {points} очков.\n\n"
-                                   f"Баланс @{winner_username}: {winner_points} Школьных.\n"
-                                   f"Баланс @{loser_username}: {loser_points} Школьных.")
+                              text=f"⚔️ Битва завершена! @{winner_username} победил @{loser_username} и получил {points} очков.\n\n"
+                                   f"👨🏿‍🦲 Баланс @{winner_username}: {winner_points} Школьных.\n"
+                                   f"👨🏿‍🦲 Баланс @{loser_username}: {loser_points} Школьных.")
     else:
         bot.send_message(group_id,
-                         text=f"Битва завершена! @{winner_username} победил @{loser_username} и получил {points} очков.\n\n"
-                              f"Баланс @{winner_username}: {winner_points} Школьных.\n"
-                              f"Баланс @{loser_username}: {loser_points} Школьных.")
+                         text=f"⚔️ Битва завершена! @{winner_username} победил @{loser_username} и получил {points} очков.\n\n"
+                              f"👨🏿‍🦲 Баланс @{winner_username}: {winner_points} Школьных.\n"
+                              f"👨🏿‍🦲 Баланс @{loser_username}: {loser_points} Школьных.")
 
 
 @bot.message_handler(commands=['upgradeinfo'])
 def help_command(message):
     bot.reply_to(message,
-                 "💵Прокачка рабовладельца даёт вам +25% шанса к получению дополнительных рабов на свою ферму за каждый уровень от 1 до 10 + очки от уровня фермы. Максимум: 5.\nПрокачка фермы повышает максимально возможное число получения рабов за 1 игру на 5 за каждый уровень.\nСпособность вампиризм даёт 30% шанс выкачать из рандомного игрока 5 очков + 3 за каждый уровень. Максимум: 7\nЧасы кроноса снижают время перезарядки /play вдвое но шанс проиграть равен 45%")
+                 "💵\n\nПрокачка рабовладельца даёт вам +17% шанса к получению дополнительных рабов на свою ферму за каждый уровень от 1 до 10 + очки от уровня фермы. Максимум: 5.\n\nПрокачка фермы повышает максимально возможное число получения и уменьшения рабов за 1 игру на 5 за каждый уровень.\n\nСпособность вампиризм даёт 30% шанс выкачать из рандомного игрока 5 очков + 3 за каждый уровень. Максимум: 7\n\nЧасы кроноса снижают время перезарядки /play на 40%")
 
 
 @bot.message_handler(commands=['upgrade'])
@@ -391,13 +419,13 @@ def upgrade_command(message):
     conn.close()
 
     markup = InlineKeyboardMarkup()
-    level_button = InlineKeyboardButton(f"Раб: {clprice})", callback_data=f"upgrade_character|{user_id}|{group_id}")
-    farm_button = InlineKeyboardButton(f"Ферма: {farmprice})", callback_data=f"upgrade_farm|{user_id}|{group_id}")
-    vamp_button = InlineKeyboardButton(f"Вампир: {vamprice})", callback_data=f"upgrade_vampirism|{user_id}|{group_id}")
-    chronos_button = InlineKeyboardButton(f"Кронос: 150", callback_data=f"buy_chronos|{user_id}|{group_id}")
+    level_button = InlineKeyboardButton(f"👨🏿‍🦲 - {clprice}", callback_data=f"upgrade_character|{user_id}|{group_id}")
+    farm_button = InlineKeyboardButton(f"🏡 - {farmprice}", callback_data=f"upgrade_farm|{user_id}|{group_id}")
+    vamp_button = InlineKeyboardButton(f"🧛🏻‍♀️ - {vamprice}", callback_data=f"upgrade_vampirism|{user_id}|{group_id}")
+    chronos_button = InlineKeyboardButton(f"⏳ - 150", callback_data=f"buy_chronos|{user_id}|{group_id}")
     markup.add(level_button, farm_button, vamp_button, chronos_button)
 
-    bot.reply_to(message, "Выберите, что вы хотите улучшить:", reply_markup=markup)
+    bot.reply_to(message, "❓ Выберите, что вы хотите улучшить:", reply_markup=markup)
 
 
 def handle_upgrade_callback(call):
@@ -419,10 +447,10 @@ def handle_upgrade_callback(call):
             cursor.execute(f"UPDATE '{group_id}' SET points = ?, character_level = ?, clprice = ? WHERE user_id = ?",
                            (points, character_level, clprice, user_id))
             conn.commit()
-            bot.answer_callback_query(call.id, f"Уровень персонажа повышен до {character_level}!")
+            bot.answer_callback_query(call.id, f"👨🏿‍🦲 Уровень персонажа повышен до {character_level}!")
         else:
             bot.answer_callback_query(call.id,
-                                      "Недостаточно очков для повышения уровня или достигнут максимальный уровень.")
+                                      "❌ Недостаточно очков для повышения уровня или достигнут максимальный уровень.")
 
         conn.close()
 
@@ -444,9 +472,9 @@ def handle_upgrade_callback(call):
             cursor.execute(f"UPDATE '{group_id}' SET points = ?, farm_level = ?, farmprice = ? WHERE user_id = ?",
                            (points, farm_level, farmprice, user_id))
             conn.commit()
-            bot.answer_callback_query(call.id, f"Уровень фермы повышен до {farm_level}!")
+            bot.answer_callback_query(call.id, f"✅ Уровень фермы повышен до {farm_level}!")
         else:
-            bot.answer_callback_query(call.id, "Недостаточно очков для повышения уровня.")
+            bot.answer_callback_query(call.id, "❌ Недостаточно очков для повышения уровня.")
 
         conn.close()
 
@@ -468,10 +496,10 @@ def handle_upgrade_callback(call):
             cursor.execute(f"UPDATE '{group_id}' SET points = ?, vampirism = ?, vamprice = ? WHERE user_id = ?",
                            (points, vampirism, vamprice, user_id))
             conn.commit()
-            bot.answer_callback_query(call.id, f"Вампиризм прокачан до {vampirism}!")
+            bot.answer_callback_query(call.id, f"✅ Вампиризм прокачан до {vampirism}!")
         else:
             bot.answer_callback_query(call.id,
-                                      "Недостаточно очков для прокачки вампиризма или достигнут максимальный уровень.")
+                                      "❌ Недостаточно очков для прокачки вампиризма или достигнут максимальный уровень.")
 
         conn.close()
 
@@ -492,9 +520,9 @@ def handle_upgrade_callback(call):
             cursor.execute(f"UPDATE '{group_id}' SET points = ?, chronos = ? WHERE user_id = ?",
                            (points, chronos, user_id))
             conn.commit()
-            bot.answer_callback_query(call.id, "Часы Кроноса куплены!")
+            bot.answer_callback_query(call.id, "✅ Часы Кроноса куплены!")
         else:
-            bot.answer_callback_query(call.id, "Недостаточно очков для покупки Chronos или он уже куплен.")
+            bot.answer_callback_query(call.id, "❌ Недостаточно очков для покупки Chronos или он уже куплен.")
 
         conn.close()
 
